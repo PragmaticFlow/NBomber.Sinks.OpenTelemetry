@@ -1,0 +1,6 @@
+﻿{
+  "OpenTelemetrySink": {
+    "Url": "http://localhost:18889",
+    "ExportProtocol": "Grpc" // Grpc, HttpProtobuf
+  }
+}
