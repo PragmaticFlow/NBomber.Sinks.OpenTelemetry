@@ -13,6 +13,10 @@ using System.Diagnostics.Metrics;
 
 namespace NBomber.Sinks.OpenTelemetry;
 
+/// <summary>
+/// Reporting sink for NBomber that exports performance metrics and scenario statistics
+/// to OpenTelemetry-compatible systems using the OTLP protocol (e.g., Prometheus, New Relic, Dynatrace, Datadog).
+/// </summary>
 public class OpenTelemetrySink : IReportingSink
 {
     private ILogger _logger = null!;
@@ -22,27 +26,45 @@ public class OpenTelemetrySink : IReportingSink
     private EmptyMetricsReader _customMetricsReader = null!;
     private OtlpExporterOptions _config = null!;
 
+    /// <summary>
+    /// Gets the name of the sink.
+    /// </summary>
     public string SinkName => nameof(OpenTelemetrySink);
 
-    public OpenTelemetrySink() { }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenTelemetrySink"/> class with default configuration.
+    /// </summary>
+    public OpenTelemetrySink()
+    {
+        _config = new OtlpExporterOptions();
+    }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenTelemetrySink"/> class using the specified configuration.
+    /// </summary>
+    /// <param name="config">The OTLP exporter configuration used for OpenTelemetry export.</param>
     public OpenTelemetrySink(OtlpExporterOptions config)
     {
         _config = config;
     }
 
+    /// <summary>
+    /// Initializes the OpenTelemetry sink with the NBomber context and configuration.
+    /// Sets up the <see cref="MeterProvider"/> and the OTLP metrics exporter.
+    /// </summary>
+    /// <param name="context">NBomber base context object that provides test and node information.</param>
+    /// <param name="infraConfig">Infrastructure configuration section from NBomber configuration.</param>
+    /// <returns>A task representing the asynchronous initialization operation.</returns>
     public Task Init(IBaseContext context, IConfiguration infraConfig)
     {
         _logger = context.Logger.ForContext<OpenTelemetrySink>();
         _context = context;
 
         var config = infraConfig?.GetSection("OpenTelemetrySink").Get<OtlpExporterOptions>();
-
         if (config != null)
             _config = config;
 
         _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(_config));
-
         _meter = new Meter("nbomber");
 
         _meterProvider = Sdk.CreateMeterProviderBuilder()
@@ -54,11 +76,21 @@ public class OpenTelemetrySink : IReportingSink
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Called at the beginning of a test session.
+    /// </summary>
+    /// <param name="sessionInfo">Information about the test session.</param>
+    /// <returns>A completed task.</returns>
     public Task Start(SessionStartInfo sessionInfo)
     {
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Saves real-time performance metrics (gauges and counters) during the bombing phase.
+    /// </summary>
+    /// <param name="metrics">The metrics data to record and export through OpenTelemetry.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public Task SaveRealtimeMetrics(MetricStats metrics)
     {
         RecordMetrics(metrics, OperationType.Bombing);
@@ -68,6 +100,11 @@ public class OpenTelemetrySink : IReportingSink
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Saves real-time scenario statistics (step performance data) during the bombing phase.
+    /// </summary>
+    /// <param name="stats">An array of scenario statistics to be recorded.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public Task SaveRealtimeStats(ScenarioStats[] stats)
     {
         RecordRealtimeStats(stats, OperationType.Bombing);
@@ -77,6 +114,11 @@ public class OpenTelemetrySink : IReportingSink
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Saves final aggregated statistics and metrics after the test run has completed.
+    /// </summary>
+    /// <param name="stats">The final node statistics containing metrics and scenario data.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public Task SaveFinalStats(NodeStats stats)
     {
         RecordRealtimeStats(stats.ScenarioStats, OperationType.Complete);
@@ -87,11 +129,18 @@ public class OpenTelemetrySink : IReportingSink
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Called when the test session ends.
+    /// </summary>
+    /// <returns>A completed task.</returns>
     public Task Stop()
     {
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Disposes the OpenTelemetry sink by flushing and releasing all managed resources.
+    /// </summary>
     public void Dispose()
     {
         _meterProvider.ForceFlush();
