@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using NBomber.Contracts;
 using NBomber.Contracts.Metrics;
 using NBomber.Contracts.Stats;
@@ -10,14 +8,10 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
 namespace NBomber.Sinks.OpenTelemetry;
-
-public class OpenTelemetryConfig
-{
-    public string Url { get; set; } = "http://localhost:4317";
-    public OtlpExportProtocol ExportProtocol { get; set; } = OtlpExportProtocol.Grpc;
-}
 
 public class OpenTelemetrySink : IReportingSink
 {
@@ -26,13 +20,13 @@ public class OpenTelemetrySink : IReportingSink
     private MeterProvider _meterProvider = null!;
     private Meter _meter = null!;
     private EmptyMetricsReader _customMetricsReader = null!;
-    private OpenTelemetryConfig _config = null!;
+    private OtlpExporterOptions _config = null!;
 
     public string SinkName => nameof(OpenTelemetrySink);
 
     public OpenTelemetrySink() { }
 
-    public OpenTelemetrySink(OpenTelemetryConfig config)
+    public OpenTelemetrySink(OtlpExporterOptions config)
     {
         _config = config;
     }
@@ -42,22 +36,12 @@ public class OpenTelemetrySink : IReportingSink
         _logger = context.Logger.ForContext<OpenTelemetrySink>();
         _context = context;
 
-        var otlpExporterOptions = new OtlpExporterOptions();
-        var config = infraConfig?.GetSection("OpenTelemetrySink").Get<OpenTelemetryConfig>();
+        var config = infraConfig?.GetSection("OpenTelemetrySink").Get<OtlpExporterOptions>();
+
         if (config != null)
             _config = config;
-        
-        try
-        {
-            otlpExporterOptions.Endpoint = new Uri(_config.Url);
-            otlpExporterOptions.Protocol = _config.ExportProtocol;
-            _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(otlpExporterOptions));
-        }
-        catch
-        {
-            _logger.Error("Reporting Sink {0} has problems with initialization. The problem could be related to invalid config structure.", SinkName);
-            throw new InvalidOperationException($"Cannot initialize {SinkName}. Please check the configuration.");
-        }
+
+        _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(_config));
 
         _meter = new Meter("nbomber");
 
@@ -132,7 +116,7 @@ public class OpenTelemetrySink : IReportingSink
 
     private ScenarioStats AddGlobalInfoSteps(ScenarioStats stats)
     {
-        var globalStepInfo = new StepStats("global information", stats.Ok, stats.Fail, 0);
+        var globalStepInfo = new StepStats("global information", stats.Ok, stats.Fail, sortIndex: 0);
         stats.StepStats = stats.StepStats.Append(globalStepInfo).ToArray();
         return stats;
     }
@@ -208,33 +192,51 @@ public class OpenTelemetrySink : IReportingSink
     {
         var testInfo = _context.TestInfo;
 
-        var tags = new Dictionary<string, object?>
-        {
-            { "test_suite", testInfo.TestSuite },
-            { "test_name", testInfo.TestName },
-            { "session_id", testInfo.SessionId },
-            { "operation_type", operationType },
-        };
+        var countersTags = stats.Counters.GroupBy(x => x.ScenarioName)
+            .ToDictionary(x => x.Key, v =>
+            {
+                var tags = new KeyValuePair<string, object?>[]
+                {
+                    new("test_suite", testInfo.TestSuite),
+                    new("test_name", testInfo.TestName),
+                    new("session_id", testInfo.SessionId),
+                    new("operation_type", operationType),
+                    new("scenario", v.Key)
+                };
+
+                return new TagList(tags);
+            });
+
+        var gaugesTags = stats.Gauges.GroupBy(x => x.ScenarioName)
+            .ToDictionary(x => x.Key, v =>
+            {
+                var tags = new KeyValuePair<string, object?>[]
+                {
+                    new("test_suite", testInfo.TestSuite),
+                    new("test_name", testInfo.TestName),
+                    new("session_id", testInfo.SessionId),
+                    new("operation_type", operationType),
+                    new("scenario", v.Key)
+                };
+
+                return new TagList(tags);
+            });
 
         foreach (var counter in stats.Counters)
         {
-            tags["scenario"] = counter.ScenarioName;
-            var counterTags = new TagList(tags.ToArray());
-            RecordGauge(counter.MetricName, counter.Value, counterTags, counter.UnitOfMeasure);
+            RecordGauge(counter.MetricName, counter.Value, countersTags[counter.ScenarioName], counter.UnitOfMeasure);
         }
 
         foreach (var gauge in stats.Gauges)
         {
-            tags["scenario"] = gauge.ScenarioName;
-            var gaugeTags = new TagList(tags.ToArray());
-            RecordGauge(gauge.MetricName, gauge.Value, gaugeTags, gauge.UnitOfMeasure);
+            RecordGauge(gauge.MetricName, gauge.Value, gaugesTags[gauge.ScenarioName], gauge.UnitOfMeasure);
         }
     }
 
     private void RecordStatusCodes(ScenarioStats stats, OperationType operationType)
     {
         var testInfo = _context.TestInfo;
-        var tags = new Dictionary<string, object?>()
+        var tags = new Dictionary<string, object?>
         {
             { "test_name", testInfo.TestName },
             { "test_suite", testInfo.TestSuite },
