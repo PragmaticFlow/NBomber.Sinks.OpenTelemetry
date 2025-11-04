@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36327.8
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBomber.Sinks.OpenTelemetry", "src\NBomber.Sinks.OpenTelemetry\NBomber.Sinks.OpenTelemetry.csproj", "{228BB74C-9DF6-EBFA-3B04-EA3DDF4EB35A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "examples\Demo\Demo.csproj", "{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{228BB74C-9DF6-EBFA-3B04-EA3DDF4EB35A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{228BB74C-9DF6-EBFA-3B04-EA3DDF4EB35A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{228BB74C-9DF6-EBFA-3B04-EA3DDF4EB35A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{228BB74C-9DF6-EBFA-3B04-EA3DDF4EB35A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EC62AFC5-927B-4CCE-923B-EAFCA9112AA6}
+	EndGlobalSection
+EndGlobal
