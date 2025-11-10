@@ -1,9 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+  <PropertyGroup>    
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Version>0.1.0-beta.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Company>NBomber</Company>
+    <Copyright>NBomber@2025</Copyright>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>nbomber_icon.png</PackageIcon>
+    <RepositoryUrl>https://github.com/PragmaticFlow/NBomber.Sinks.OpenTelemetry</RepositoryUrl>
+    <PackageTags>load-testing, performance-testing, integration-testing, open-telemetry</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>NBomber sink that provides OpenTelemetry metrics</Description>
+    <Title>NBomber.Sinks.OpenTelemetry</Title>
   </PropertyGroup>
 
   <ItemGroup>

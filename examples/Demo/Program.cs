@@ -2,18 +2,18 @@
 using NBomber.CSharp;
 using NBomber.Sinks.OpenTelemetry;
 
-namespace Demo
-{
-    internal class Program
-    {
-        static void Main(string[] args)
-        {
-            var counterStep1 = Metric.CreateCounter("my-counter-step-1", unitOfMeasure: "MB");
-            var gaugeStep1 = Metric.CreateGauge("my-gauge-step-1", unitOfMeasure: "KB");
-            var counterStep2 = Metric.CreateCounter("my-counter-step-2", unitOfMeasure: "MB");
-            var gaugeStep2 = Metric.CreateGauge("my-gauge-step-2", unitOfMeasure: "KB");
+namespace Demo;
 
-            var scenario = Scenario.Create("scenario", async context =>
+internal class Program
+{
+    static void Main(string[] args)
+    {
+        var counterStep1 = Metric.CreateCounter("my-counter-step-1", unitOfMeasure: "MB");
+        var gaugeStep1 = Metric.CreateGauge("my-gauge-step-1", unitOfMeasure: "KB");
+        var counterStep2 = Metric.CreateCounter("my-counter-step-2", unitOfMeasure: "MB");
+        var gaugeStep2 = Metric.CreateGauge("my-gauge-step-2", unitOfMeasure: "KB");
+
+        var scenario = Scenario.Create("scenario", async context =>
             {
                 await Step.Run("step_1", context, async () =>
                 {
@@ -52,12 +52,11 @@ namespace Demo
                 Simulation.Inject(rate: 5, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(60)) // keep injecting with rate 5
             );
 
-            var stats = NBomberRunner
-                .RegisterScenarios(scenario)
-                .LoadInfraConfig("./infra-config.json")
-                .WithoutReports()
-                .WithReportingSinks(new OpenTelemetrySink())
-                .Run();
-        }
+        var stats = NBomberRunner
+            .RegisterScenarios(scenario)
+            .LoadInfraConfig("./infra-config.json")
+            .WithoutReports()
+            .WithReportingSinks(new OpenTelemetrySink())
+            .Run();
     }
 }
