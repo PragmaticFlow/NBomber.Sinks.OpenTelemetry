@@ -25,6 +25,7 @@ public class OpenTelemetrySink : IReportingSink
     private Meter _meter = null!;
     private EmptyMetricsReader _customMetricsReader = null!;
     private OtlpExporterOptions _config = null!;
+    private MetricReaderTemporalityPreference _readerTemporalityPreference;
 
     /// <summary>
     /// Gets the name of the sink.
@@ -32,20 +33,25 @@ public class OpenTelemetrySink : IReportingSink
     public string SinkName => nameof(OpenTelemetrySink);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenTelemetrySink"/> class with default configuration.
+    /// Initializes a new instance of the <see cref="OpenTelemetrySink"/> class with default configuration:
+    /// <see cref="OtlpExportProtocol.HttpProtobuf"/> protocol and <see cref="MetricReaderTemporalityPreference.Cumulative"/> temporality preference.
     /// </summary>
     public OpenTelemetrySink()
     {
         _config = new OtlpExporterOptions();
+        _config.Protocol = OtlpExportProtocol.HttpProtobuf;
+        _readerTemporalityPreference = MetricReaderTemporalityPreference.Cumulative;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenTelemetrySink"/> class using the specified configuration.
     /// </summary>
     /// <param name="config">The OTLP exporter configuration used for OpenTelemetry export.</param>
-    public OpenTelemetrySink(OtlpExporterOptions config)
+    /// <param name="readerTemporalityPreference">The temporality preference for the metrics reader. Defaults to <see cref="MetricReaderTemporalityPreference.Cumulative"/>.</param>
+    public OpenTelemetrySink(OtlpExporterOptions config, MetricReaderTemporalityPreference readerTemporalityPreference = MetricReaderTemporalityPreference.Cumulative)
     {
         _config = config;
+        _readerTemporalityPreference = readerTemporalityPreference;
     }
 
     /// <summary>
@@ -63,8 +69,10 @@ public class OpenTelemetrySink : IReportingSink
         var config = infraConfig?.GetSection("OpenTelemetrySink").Get<OtlpExporterOptions>();
         if (config != null)
             _config = config;
-
+        
         _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(_config));
+        _customMetricsReader.TemporalityPreference = _readerTemporalityPreference;
+
         _meter = new Meter("nbomber");
 
         _meterProvider = Sdk.CreateMeterProviderBuilder()
