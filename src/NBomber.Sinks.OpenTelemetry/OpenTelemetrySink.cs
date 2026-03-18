@@ -26,6 +26,7 @@ public class OpenTelemetrySink : IReportingSink
     private EmptyMetricsReader _customMetricsReader = null!;
     private OtlpExporterOptions _config = null!;
     private MetricReaderTemporalityPreference _readerTemporalityPreference;
+    private OpenTelemetrySdkEventListener _eventListener = null!;
 
     /// <summary>
     /// Gets the name of the sink.
@@ -65,11 +66,12 @@ public class OpenTelemetrySink : IReportingSink
     {
         _logger = context.Logger.ForContext<OpenTelemetrySink>();
         _context = context;
+        _eventListener = new OpenTelemetrySdkEventListener(_logger);
 
         var config = infraConfig?.GetSection("OpenTelemetrySink").Get<OtlpExporterOptions>();
         if (config != null)
             _config = config;
-        
+
         _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(_config));
         _customMetricsReader.TemporalityPreference = _readerTemporalityPreference;
 
@@ -156,6 +158,7 @@ public class OpenTelemetrySink : IReportingSink
         _meterProvider.Dispose();
         _customMetricsReader.Dispose();
         _meter.Dispose();
+        _eventListener.Dispose();
     }
 
     private void RecordRealtimeStats(ScenarioStats[] stats, OperationType operationType)
