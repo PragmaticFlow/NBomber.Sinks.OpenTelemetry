@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>13.0</LangVersion>
     <Company>NBomber</Company>
-    <Copyright>NBomber@2025</Copyright>
+    <Copyright>NBomber@2026</Copyright>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -37,7 +37,7 @@
     <PackageReference Include="NBomber.Contracts" Version="6.1.0" />
     <PackageReference Include="OpenTelemetry" Version="1.13.1" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
-    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog" Version="4.2.0" />
   </ItemGroup>
 
 </Project>
