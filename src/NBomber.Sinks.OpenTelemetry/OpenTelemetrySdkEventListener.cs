@@ -3,15 +3,8 @@ using Serilog;
 
 namespace NBomber.Sinks.OpenTelemetry;
 
-internal class OpenTelemetrySdkEventListener : EventListener
+internal class OpenTelemetrySdkEventListener(ILogger logger) : EventListener
 {
-    private readonly ILogger _logger;
-
-    public OpenTelemetrySdkEventListener(ILogger logger)
-    {
-        _logger = logger;
-    }
-
     protected override void OnEventSourceCreated(EventSource eventSource)
     {
         if (eventSource.Name.StartsWith("OpenTelemetry", StringComparison.OrdinalIgnoreCase))
@@ -29,7 +22,7 @@ internal class OpenTelemetrySdkEventListener : EventListener
             ? string.Join(", ", eventData.Payload)
             : string.Empty;
 
-        _logger.Error(
+        logger.Error(
             "OpenTelemetrySink [{Source}] {EventName}: {Payload}",
             eventData.EventSource.Name,
             eventData.EventName,
