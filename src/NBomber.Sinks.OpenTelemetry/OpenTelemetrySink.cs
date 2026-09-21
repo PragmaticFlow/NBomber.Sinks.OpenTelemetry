@@ -183,21 +183,12 @@ public class OpenTelemetrySink : IReportingSink
 
     private void RecordStepsStats(ScenarioStats scnStats, OperationType operationType)
     {
-        var testInfo = _context.TestInfo;
-
-        var commonTags = new Dictionary<string, object?>
-        {
-            { "test_suite", testInfo.TestSuite },
-            { "test_name", testInfo.TestName },
-            { "scenario", scnStats.ScenarioName },
-            { "session_id", testInfo.SessionId },
-            { "operation_type", operationType }
-        };
+        var scenarioTags = BuildScenarioTags(operationType, scnStats);
 
         foreach (var stats in scnStats.StepStats)
         {
-            commonTags["step"] = stats.StepName;
-            var tags = new TagList(commonTags.ToArray());
+            scenarioTags["step"] = stats.StepName;
+            var tags = ToTagList(scenarioTags);
 
             RecordGauge("all.request.count", stats.Ok.Request.Count + stats.Fail.Request.Count, tags);
             RecordGauge("all.datatransfer.all", stats.Ok.DataTransfer.AllBytes + stats.Fail.DataTransfer.AllBytes, tags);
@@ -250,67 +241,92 @@ public class OpenTelemetrySink : IReportingSink
 
     private void RecordMetrics(MetricStats stats, OperationType operationType)
     {
-        var testInfo = _context.TestInfo;
-
-        var countersTags = stats.Counters.GroupBy(x => x.ScenarioName)
-            .ToDictionary(x => x.Key, v =>
-            {
-                var tags = new KeyValuePair<string, object?>[]
-                {
-                    new("test_suite", testInfo.TestSuite),
-                    new("test_name", testInfo.TestName),
-                    new("session_id", testInfo.SessionId),
-                    new("operation_type", operationType),
-                    new("scenario", v.Key)
-                };
-
-                return new TagList(tags);
-            });
-
-        var gaugesTags = stats.Gauges.GroupBy(x => x.ScenarioName)
-            .ToDictionary(x => x.Key, v =>
-            {
-                var tags = new KeyValuePair<string, object?>[]
-                {
-                    new("test_suite", testInfo.TestSuite),
-                    new("test_name", testInfo.TestName),
-                    new("session_id", testInfo.SessionId),
-                    new("operation_type", operationType),
-                    new("scenario", v.Key)
-                };
-
-                return new TagList(tags);
-            });
+        var metricsTags = stats.Counters.Select(x => x.ScenarioName)
+            .Concat(stats.Gauges.Select(x => x.ScenarioName))
+            .Distinct()
+            .ToDictionary(scnName => scnName, scnName => ToTagList(BuildMetricTags(operationType, scnName)));
 
         foreach (var counter in stats.Counters)
         {
-            RecordGauge(counter.MetricName, counter.Value, countersTags[counter.ScenarioName], counter.UnitOfMeasure);
+            RecordGauge(counter.MetricName, counter.Value, metricsTags[counter.ScenarioName], counter.UnitOfMeasure);
         }
 
         foreach (var gauge in stats.Gauges)
         {
-            RecordGauge(gauge.MetricName, gauge.Value, gaugesTags[gauge.ScenarioName], gauge.UnitOfMeasure);
+            RecordGauge(gauge.MetricName, gauge.Value, metricsTags[gauge.ScenarioName], gauge.UnitOfMeasure);
         }
     }
 
     private void RecordStatusCodes(ScenarioStats stats, OperationType operationType)
     {
-        var testInfo = _context.TestInfo;
-        var tags = new Dictionary<string, object?>
-        {
-            { "test_name", testInfo.TestName },
-            { "test_suite", testInfo.TestSuite },
-            { "scenario", stats.ScenarioName },
-            { "operation_type", operationType },
-        };
+        var tags = BuildScenarioTags(operationType, stats);
 
         foreach (var codeStats in stats.Ok.StatusCodes.Concat(stats.Fail.StatusCodes))
         {
             tags["status_code_status"] = codeStats.StatusCode;
-            var tagList = new TagList(tags.ToArray());
 
-            RecordGauge("status_code.count", codeStats.Count, tagList);
+            RecordGauge("status_code.count", codeStats.Count, ToTagList(tags));
         }
+    }
+
+    private Dictionary<string, string> BuildGlobalTags(OperationType operationType)
+    {
+        Dictionary<string, string> BuildSessionDefaultTags(OperationType operationType)
+        {
+            var nodeInfo = _context.GetNodeInfo();
+            var testInfo = _context.TestInfo;
+
+            return new Dictionary<string, string>
+            {
+                ["session_id"] = testInfo.SessionId,
+                ["operation_type"] = operationType.ToString(),
+                ["node_type"] = nodeInfo.NodeType.ToString(),
+                ["test_suite"] = testInfo.TestSuite,
+                ["test_name"] = testInfo.TestName,
+                ["cluster_id"] = testInfo.ClusterId
+            };
+        }
+
+        var tags = BuildSessionDefaultTags(operationType);
+        AddTags(tags, _context.TestInfo.Tags);
+
+        return tags;
+    }
+
+    private Dictionary<string, string> BuildScenarioTags(OperationType operationType, ScenarioStats scnStats)
+    {
+        var tags = BuildGlobalTags(operationType);
+        tags["scenario"] = scnStats.ScenarioName;
+
+        AddTags(tags, scnStats.Tags);
+
+        return tags;
+    }
+
+    private Dictionary<string, string> BuildMetricTags(OperationType operationType, string scenarioName)
+    {
+        var tags = BuildGlobalTags(operationType);
+
+        if (!string.IsNullOrEmpty(scenarioName))
+            tags["scenario"] = scenarioName;
+
+        return tags;
+    }
+
+    private void AddTags(Dictionary<string, string> target, IReadOnlyDictionary<string, string> tags)
+    {
+        foreach (var tag in tags)
+            target[tag.Key] = tag.Value;
+    }
+
+    private TagList ToTagList(Dictionary<string, string> tags)
+    {
+        var tagList = new TagList();
+
+        foreach (var tag in tags)
+            tagList.Add(tag.Key, tag.Value);
+
+        return tagList;
     }
 
     private void RecordGauge<T>(string name, T value, TagList tags, string? measureOfUnit = null) where T : struct
