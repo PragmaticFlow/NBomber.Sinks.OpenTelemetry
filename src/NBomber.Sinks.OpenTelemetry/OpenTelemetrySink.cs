@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Collections.Concurrent;
+using Microsoft.Extensions.Configuration;
 using NBomber.Contracts;
 using NBomber.Contracts.Metrics;
 using NBomber.Contracts.Stats;
@@ -19,14 +20,25 @@ namespace NBomber.Sinks.OpenTelemetry;
 /// </summary>
 public class OpenTelemetrySink : IReportingSink
 {
-    private ILogger _logger = null!;
-    private IBaseContext _context = null!;
-    private MeterProvider _meterProvider = null!;
-    private Meter _meter = null!;
-    private EmptyMetricsReader _customMetricsReader = null!;
-    private OtlpExporterOptions _config = null!;
-    private MetricReaderTemporalityPreference _readerTemporalityPreference;
-    private OpenTelemetrySdkEventListener _eventListener = null!;
+    private ILogger? _logger;
+    private IBaseContext? _context;
+    private MeterProvider? _meterProvider;
+    private Meter? _meter;
+    private EmptyMetricsReader? _customMetricsReader;
+    private OtlpExporterOptions? _config;
+    private readonly MetricReaderTemporalityPreference _readerTemporalityPreference;
+    private OpenTelemetrySdkEventListener? _eventListener;
+
+    // Tags are stable for the whole test session, so they are built once and then reused.
+    private OperationType? _cachedOperationType;
+    private Dictionary<string, object?>? _globalTags;
+    private readonly ConcurrentDictionary<string, KeyValuePair<string, object?>[]> _scenarioTags = new();
+    private readonly ConcurrentDictionary<(string Scenario, string Step), TagList> _stepTags = new();
+    private readonly ConcurrentDictionary<(string Scenario, string StatusCode), TagList> _statusCodeTags = new();
+    private readonly ConcurrentDictionary<string, TagList> _metricTags = new();
+
+    // Gauges live as long as the meter, so they are not cleared between sessions.
+    private readonly ConcurrentDictionary<(string Name, string? Unit, Type Type), Instrument> _gauges = new();
 
     /// <summary>
     /// Gets the name of the sink.
@@ -72,7 +84,7 @@ public class OpenTelemetrySink : IReportingSink
         if (config != null)
             _config = config;
 
-        _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(_config));
+        _customMetricsReader = new EmptyMetricsReader(new OtlpMetricExporter(_config!));
         _customMetricsReader.TemporalityPreference = _readerTemporalityPreference;
 
         _meter = new Meter("nbomber");
@@ -93,6 +105,7 @@ public class OpenTelemetrySink : IReportingSink
     /// <returns>A completed task.</returns>
     public Task Start(SessionStartInfo sessionInfo)
     {
+        ClearTagsCache();
         return Task.CompletedTask;
     }
 
@@ -105,7 +118,7 @@ public class OpenTelemetrySink : IReportingSink
     {
         RecordMetrics(metrics, OperationType.Bombing);
 
-        _meterProvider.ForceFlush();
+        _meterProvider?.ForceFlush();
 
         return Task.CompletedTask;
     }
@@ -119,7 +132,7 @@ public class OpenTelemetrySink : IReportingSink
     {
         RecordRealtimeStats(stats, OperationType.Bombing);
 
-        _meterProvider.ForceFlush();
+        _meterProvider?.ForceFlush();
 
         return Task.CompletedTask;
     }
@@ -134,7 +147,7 @@ public class OpenTelemetrySink : IReportingSink
         RecordRealtimeStats(stats.ScenarioStats, OperationType.Complete);
         RecordMetrics(stats.Metrics, OperationType.Complete);
 
-        _meterProvider.ForceFlush();
+        _meterProvider?.ForceFlush();
 
         return Task.CompletedTask;
     }
@@ -153,16 +166,18 @@ public class OpenTelemetrySink : IReportingSink
     /// </summary>
     public void Dispose()
     {
-        _meterProvider.ForceFlush();
+        _meterProvider?.ForceFlush();
 
-        _meterProvider.Dispose();
-        _customMetricsReader.Dispose();
-        _meter.Dispose();
-        _eventListener.Dispose();
+        _meterProvider?.Dispose();
+        _customMetricsReader?.Dispose();
+        _meter?.Dispose();
+        _eventListener?.Dispose();
     }
 
     private void RecordRealtimeStats(ScenarioStats[] stats, OperationType operationType)
     {
+        EnsureTagCache(operationType);
+
         foreach (var scnStats in stats.Select(AddGlobalInfoSteps))
         {
             RecordStepsStats(scnStats, operationType);
@@ -183,21 +198,9 @@ public class OpenTelemetrySink : IReportingSink
 
     private void RecordStepsStats(ScenarioStats scnStats, OperationType operationType)
     {
-        var testInfo = _context.TestInfo;
-
-        var commonTags = new Dictionary<string, object?>
-        {
-            { "test_suite", testInfo.TestSuite },
-            { "test_name", testInfo.TestName },
-            { "scenario", scnStats.ScenarioName },
-            { "session_id", testInfo.SessionId },
-            { "operation_type", operationType }
-        };
-
         foreach (var stats in scnStats.StepStats)
         {
-            commonTags["step"] = stats.StepName;
-            var tags = new TagList(commonTags.ToArray());
+            var tags = GetStepTags(operationType, scnStats.ScenarioName, stats.StepName);
 
             RecordGauge("all.request.count", stats.Ok.Request.Count + stats.Fail.Request.Count, tags);
             RecordGauge("all.datatransfer.all", stats.Ok.DataTransfer.AllBytes + stats.Fail.DataTransfer.AllBytes, tags);
@@ -250,72 +253,152 @@ public class OpenTelemetrySink : IReportingSink
 
     private void RecordMetrics(MetricStats stats, OperationType operationType)
     {
-        var testInfo = _context.TestInfo;
-
-        var countersTags = stats.Counters.GroupBy(x => x.ScenarioName)
-            .ToDictionary(x => x.Key, v =>
-            {
-                var tags = new KeyValuePair<string, object?>[]
-                {
-                    new("test_suite", testInfo.TestSuite),
-                    new("test_name", testInfo.TestName),
-                    new("session_id", testInfo.SessionId),
-                    new("operation_type", operationType),
-                    new("scenario", v.Key)
-                };
-
-                return new TagList(tags);
-            });
-
-        var gaugesTags = stats.Gauges.GroupBy(x => x.ScenarioName)
-            .ToDictionary(x => x.Key, v =>
-            {
-                var tags = new KeyValuePair<string, object?>[]
-                {
-                    new("test_suite", testInfo.TestSuite),
-                    new("test_name", testInfo.TestName),
-                    new("session_id", testInfo.SessionId),
-                    new("operation_type", operationType),
-                    new("scenario", v.Key)
-                };
-
-                return new TagList(tags);
-            });
+        EnsureTagCache(operationType);
 
         foreach (var counter in stats.Counters)
         {
-            RecordGauge(counter.MetricName, counter.Value, countersTags[counter.ScenarioName], counter.UnitOfMeasure);
+            var tags = GetMetricTags(operationType, counter.ScenarioName);
+            RecordGauge(counter.MetricName, counter.Value, tags, counter.UnitOfMeasure);
         }
 
         foreach (var gauge in stats.Gauges)
         {
-            RecordGauge(gauge.MetricName, gauge.Value, gaugesTags[gauge.ScenarioName], gauge.UnitOfMeasure);
+            var tags = GetMetricTags(operationType, gauge.ScenarioName);
+            RecordGauge(gauge.MetricName, gauge.Value, tags, gauge.UnitOfMeasure);
         }
     }
 
     private void RecordStatusCodes(ScenarioStats stats, OperationType operationType)
     {
-        var testInfo = _context.TestInfo;
-        var tags = new Dictionary<string, object?>
-        {
-            { "test_name", testInfo.TestName },
-            { "test_suite", testInfo.TestSuite },
-            { "scenario", stats.ScenarioName },
-            { "operation_type", operationType },
-        };
-
         foreach (var codeStats in stats.Ok.StatusCodes.Concat(stats.Fail.StatusCodes))
         {
-            tags["status_code_status"] = codeStats.StatusCode;
-            var tagList = new TagList(tags.ToArray());
-
-            RecordGauge("status_code.count", codeStats.Count, tagList);
+            var tags = GetStatusCodeTags(operationType, stats.ScenarioName, codeStats.StatusCode);
+            RecordGauge("status_code.count", codeStats.Count, tags);
         }
     }
 
-    private void RecordGauge<T>(string name, T value, TagList tags, string? measureOfUnit = null) where T : struct
+    private void RecordGauge<T>(string name, T value, in TagList tags, string? measureOfUnit = null) where T : struct
     {
-        var gauge = _meter.CreateGauge<T>(name, measureOfUnit);
-        gauge.Record(value, tags);
+        var gauge = (Gauge<T>)_gauges.GetOrAdd((name, measureOfUnit, typeof(T)),
+            static (key, meter) => meter!.CreateGauge<T>(key.Name, key.Unit),
+            _meter);
+
+        gauge.Record(value, in tags);
+    }
+
+    /// <summary>
+    /// Drops the cached tags if they were built for a different operation type.
+    /// The operation type changes at most once per session (Bombing -> Complete).
+    /// </summary>
+    private void EnsureTagCache(OperationType operationType)
+    {
+        if (_cachedOperationType == operationType) return;
+
+        ClearTagsCache();
+        _cachedOperationType = operationType;
+    }
+
+    private void ClearTagsCache()
+    {
+        _cachedOperationType = null;
+        _globalTags = null;
+        
+        _scenarioTags.Clear();
+        _stepTags.Clear();
+        _statusCodeTags.Clear();
+        _metricTags.Clear();
+    }
+
+    private Dictionary<string, object?> GetGlobalTags(OperationType operationType) =>
+        _globalTags ??= BuildGlobalTags(operationType);
+
+    private KeyValuePair<string, object?>[] GetScenarioTags(OperationType operationType, string scenarioName) =>
+        _scenarioTags.GetOrAdd(scenarioName,
+            static (scnName, state) => state.Sink.BuildScenarioTags(state.OperationType, scnName),
+            (Sink: this, OperationType: operationType));
+    
+    private TagList GetStepTags(OperationType operationType, string scenarioName, string stepName) =>
+        _stepTags.GetOrAdd((scenarioName, stepName),
+            static (key, state) =>
+            {
+                var scnTags = state.Sink.GetScenarioTags(state.OperationType, key.Scenario);
+                return new TagList(AppendTag(scnTags, "step", key.Step));
+            },
+            (Sink: this, OperationType: operationType));
+
+    private TagList GetStatusCodeTags(OperationType operationType, string scenarioName, string statusCode) =>
+        _statusCodeTags.GetOrAdd((scenarioName, statusCode),
+            static (key, state) =>
+            {
+                var scnTags = state.Sink.GetScenarioTags(state.OperationType, key.Scenario);
+                return new TagList(AppendTag(scnTags, "status_code_status", key.StatusCode));
+            },
+            (Sink: this, OperationType: operationType));
+
+    private TagList GetMetricTags(OperationType operationType, string scenarioName) =>
+        _metricTags.GetOrAdd(scenarioName,
+            static (scnName, state) => state.Sink.BuildMetricTags(state.OperationType, scnName),
+            (Sink: this, OperationType: operationType));
+
+    private Dictionary<string, object?> BuildGlobalTags(OperationType operationType)
+    {
+        Dictionary<string, object?> BuildSessionDefaultTags(OperationType operation)
+        {
+            var nodeInfo = _context!.GetNodeInfo();
+            var testInfo = _context!.TestInfo;
+
+            return new Dictionary<string, object?>
+            {
+                ["session_id"] = testInfo.SessionId,
+                ["operation_type"] = operation.ToString(),
+                ["node_type"] = nodeInfo.NodeType.ToString(),
+                ["test_suite"] = testInfo.TestSuite,
+                ["test_name"] = testInfo.TestName
+            };
+        }
+
+        var tags = BuildSessionDefaultTags(operationType);
+        MergeTags(tags, _context!.TestInfo.Tags);
+        
+        return tags;
+    }
+
+    private KeyValuePair<string, object?>[] BuildScenarioTags(OperationType operationType, string scenarioName)
+    {
+        var globalTags = GetGlobalTags(operationType);
+
+        var tags = new Dictionary<string, object?>(globalTags)
+        {
+            ["scenario"] = scenarioName
+        };
+
+        return tags.ToArray();
+    }
+
+    private TagList BuildMetricTags(OperationType operationType, string scenarioName)
+    {
+        var globalTags = GetGlobalTags(operationType);
+
+        var tags = new Dictionary<string, object?>(globalTags)
+        {
+            ["scenario"] = scenarioName
+        };
+
+        return new TagList(tags.ToArray());
+    }
+
+    private void MergeTags(Dictionary<string, object?> target, IReadOnlyDictionary<string, string> tags)
+    {
+        foreach (var tag in tags)
+            target[tag.Key] = tag.Value;
+    }
+    
+    private static KeyValuePair<string, object?>[] AppendTag(KeyValuePair<string, object?>[] tags, string key, object? value)
+    {
+        var result = new KeyValuePair<string, object?>[tags.Length + 1];
+        tags.CopyTo(result, 0);
+        result[tags.Length] = new(key, value);
+
+        return result;
     }
 }
