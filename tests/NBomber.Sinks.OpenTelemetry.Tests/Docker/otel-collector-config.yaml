@@ -1,0 +1,29 @@
+# OpenTelemetry Collector used by the E2E tests.
+# Accepts OTLP metrics over gRPC (4317) and HTTP (4318)
+# and forwards them to Prometheus, which tests query via its HTTP API.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlphttp/prometheus:
+    # the "/v1/metrics" path is appended by the exporter
+    endpoint: http://prometheus:9090/api/v1/otlp
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp/prometheus]

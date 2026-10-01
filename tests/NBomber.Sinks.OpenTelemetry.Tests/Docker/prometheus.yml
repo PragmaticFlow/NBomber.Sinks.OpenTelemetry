@@ -1,0 +1,7 @@
+# Prometheus used by the E2E tests as a queryable metrics storage.
+# Metrics are pushed by the OTEL collector to the native OTLP receiver (/api/v1/otlp),
+# no scraping is configured.
+
+otlp:
+  # keep metric names predictable: dots are replaced with underscores, no unit/type suffixes (e.g. "_megabytes", "_total")
+  translation_strategy: UnderscoreEscapingWithoutSuffixes
