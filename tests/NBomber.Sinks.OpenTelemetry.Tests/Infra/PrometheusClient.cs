@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace NBomber.Sinks.OpenTelemetry.Tests;
+namespace NBomber.Sinks.OpenTelemetry.Tests.Infra;
 
 public record MetricSample(IReadOnlyDictionary<string, string> Labels, double Value);
 

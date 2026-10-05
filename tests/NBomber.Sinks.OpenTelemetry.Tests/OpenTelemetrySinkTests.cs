@@ -1,6 +1,7 @@
 using NBomber.Contracts;
 using NBomber.Contracts.Stats;
 using NBomber.CSharp;
+using NBomber.Sinks.OpenTelemetry.Tests.Infra;
 using OpenTelemetry.Exporter;
 using Shouldly;
 
@@ -96,30 +97,30 @@ public class OpenTelemetrySinkTests(OtelCollectorFixture fixture) : IClassFixtur
         var gauge = Metric.CreateGauge(GaugeName, unitOfMeasure: "KB");
 
         var scenario = Scenario.Create(ScenarioName, async context =>
+        {
+            await Step.Run(StepName, context, async () =>
             {
-                await Step.Run(StepName, context, async () =>
-                {
-                    await Task.Delay(10);
+                await Task.Delay(10);
 
-                    counter.Add(1);
-                    gauge.Set(GaugeValue);
+                counter.Add(1);
+                gauge.Set(GaugeValue);
 
-                    return Response.Ok(statusCode: "200", sizeBytes: 100);
-                });
+                return Response.Ok(statusCode: "200", sizeBytes: 100);
+            });
 
-                return Response.Ok();
-            })
-            .WithInit(ctx =>
-            {
-                ctx.RegisterMetric(counter);
-                ctx.RegisterMetric(gauge);
-                return Task.CompletedTask;
-            })
-            .WithoutWarmUp()
-            .WithLoadSimulations(
-                // longer than the reporting interval, so at least one realtime report is sent
-                Simulation.Inject(rate: 10, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(7))
-            );
+            return Response.Ok();
+        })
+        .WithInit(ctx =>
+        {
+            ctx.RegisterMetric(counter);
+            ctx.RegisterMetric(gauge);
+            return Task.CompletedTask;
+        })
+        .WithoutWarmUp()
+        .WithLoadSimulations(
+            // longer than the reporting interval, so at least one realtime report is sent
+            Simulation.Inject(rate: 10, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(7))
+        );
 
         return NBomberRunner
             .RegisterScenarios(scenario)

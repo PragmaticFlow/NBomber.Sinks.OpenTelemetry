@@ -1,4 +1,4 @@
-namespace NBomber.Sinks.OpenTelemetry.Tests;
+namespace NBomber.Sinks.OpenTelemetry.Tests.Infra;
 
 public class OtelCollectorFixture : IAsyncLifetime
 {
