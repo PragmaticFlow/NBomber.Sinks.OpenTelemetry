@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "examples\Demo\Demo.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBomber.Sinks.OpenTelemetry.Tests", "tests\NBomber.Sinks.OpenTelemetry.Tests\NBomber.Sinks.OpenTelemetry.Tests.csproj", "{803D93DB-2C36-4EC9-98E9-D07C2DF3967B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,12 +27,17 @@ Global
 		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{803D93DB-2C36-4EC9-98E9-D07C2DF3967B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{803D93DB-2C36-4EC9-98E9-D07C2DF3967B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{803D93DB-2C36-4EC9-98E9-D07C2DF3967B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{803D93DB-2C36-4EC9-98E9-D07C2DF3967B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B4E53FE0-DCD7-6FED-E141-57B8C60A80E6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{803D93DB-2C36-4EC9-98E9-D07C2DF3967B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EC62AFC5-927B-4CCE-923B-EAFCA9112AA6}

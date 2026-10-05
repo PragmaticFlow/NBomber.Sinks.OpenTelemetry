@@ -1,0 +1,30 @@
+name: nbomber-sinks-otel-tests
+
+services:
+
+    prometheus:
+        image: prom/prometheus:v3.15.0
+        command:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --web.enable-otlp-receiver
+        ports:
+            - "9090:9090"   # HTTP API / UI
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        healthcheck:
+            test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/ready"]
+            interval: 2s
+            timeout: 2s
+            retries: 15
+
+    otel-collector:
+        image: otel/opentelemetry-collector-contrib:0.161.0
+        ports:
+            - "4317:4317"   # OTLP gRPC
+            - "4318:4318"   # OTLP HTTP
+            - "13133:13133" # health check
+        volumes:
+            - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+        depends_on:
+            prometheus:
+                condition: service_healthy
