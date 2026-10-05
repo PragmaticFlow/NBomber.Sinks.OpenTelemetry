@@ -34,7 +34,7 @@ public class OpenTelemetrySink : IReportingSink
     private Dictionary<string, object?>? _globalTags;
     private readonly ConcurrentDictionary<string, KeyValuePair<string, object?>[]> _scenarioTags = new();
     private readonly ConcurrentDictionary<(string Scenario, string Step), TagList> _stepTags = new();
-    private readonly ConcurrentDictionary<(string Scenario, string StatusCode), TagList> _statusCodeTags = new();
+    private readonly ConcurrentDictionary<(string Scenario, string Step, string StatusCode), TagList> _statusCodeTags = new();
     private readonly ConcurrentDictionary<string, TagList> _metricTags = new();
 
     // Gauges live as long as the meter, so they are not cleared between sessions.
@@ -182,11 +182,6 @@ public class OpenTelemetrySink : IReportingSink
         {
             RecordStepsStats(scnStats, operationType);
         }
-
-        foreach (var x in stats)
-        {
-            RecordStatusCodes(x, operationType);
-        }
     }
 
     private ScenarioStats AddGlobalInfoSteps(ScenarioStats stats)
@@ -248,6 +243,8 @@ public class OpenTelemetrySink : IReportingSink
             RecordGauge("fail.datatransfer.percent99", stats.Fail.DataTransfer.Percent99, tags);
 
             RecordGauge("simulation.value", scnStats.LoadSimulationStats.Value, tags);
+
+            RecordStatusCodes(scnStats, stats, operationType);
         }
     }
 
@@ -268,11 +265,11 @@ public class OpenTelemetrySink : IReportingSink
         }
     }
 
-    private void RecordStatusCodes(ScenarioStats stats, OperationType operationType)
+    private void RecordStatusCodes(ScenarioStats scnStats, StepStats step, OperationType operationType)
     {
-        foreach (var codeStats in stats.Ok.StatusCodes.Concat(stats.Fail.StatusCodes))
+        foreach (var codeStats in step.Ok.StatusCodes.Concat(step.Fail.StatusCodes))
         {
-            var tags = GetStatusCodeTags(operationType, stats.ScenarioName, codeStats.StatusCode);
+            var tags = GetStatusCodeTags(operationType, scnStats.ScenarioName, step.StepName, codeStats.StatusCode);
             RecordGauge("status_code.count", codeStats.Count, tags);
         }
     }
@@ -326,12 +323,12 @@ public class OpenTelemetrySink : IReportingSink
             },
             (Sink: this, OperationType: operationType));
 
-    private TagList GetStatusCodeTags(OperationType operationType, string scenarioName, string statusCode) =>
-        _statusCodeTags.GetOrAdd((scenarioName, statusCode),
+    private TagList GetStatusCodeTags(OperationType operationType, string scenarioName, string stepName, string statusCode) =>
+        _statusCodeTags.GetOrAdd((scenarioName, stepName, statusCode),
             static (key, state) =>
             {
-                var scnTags = state.Sink.GetScenarioTags(state.OperationType, key.Scenario);
-                return new TagList(AppendTag(scnTags, "status_code_status", key.StatusCode));
+                var stepTags = state.Sink.GetStepTags(state.OperationType, key.Scenario, key.Step);
+                return new TagList(AppendTag(stepTags.ToArray(), "status_code_status", key.StatusCode));
             },
             (Sink: this, OperationType: operationType));
 
