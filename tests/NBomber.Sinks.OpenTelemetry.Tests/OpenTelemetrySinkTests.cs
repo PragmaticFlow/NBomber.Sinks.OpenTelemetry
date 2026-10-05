@@ -46,7 +46,7 @@ public class OpenTelemetrySinkTests(OtelCollectorFixture fixture) : IClassFixtur
         var stepLatencyMax = await _metrics.WaitForSample("ok.latency.max", stepLabels);
         stepLatencyMax.Value.ShouldBe(stepStats.Ok.Latency.MaxMs, tolerance: 0.001);
 
-        var statusCodeLabels = GenerateLabels(testName, OperationType.Complete, new() { ["status_code_status"] = "200" });
+        var statusCodeLabels = GenerateLabels(testName, OperationType.Complete, new() { ["status_code.status"] = "200" });
         var statusCodeCount = await _metrics.WaitForSample("status_code.count", statusCodeLabels);
         statusCodeCount.Value.ShouldBe(scnStats.Ok.StatusCodes.First(x => x.StatusCode == "200").Count);
     }
