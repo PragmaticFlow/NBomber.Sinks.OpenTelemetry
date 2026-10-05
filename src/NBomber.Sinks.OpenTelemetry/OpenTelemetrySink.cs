@@ -331,7 +331,7 @@ public class OpenTelemetrySink : IReportingSink
             static (key, state) =>
             {
                 var scnTags = state.Sink.GetScenarioTags(state.OperationType, key.Scenario);
-                return new TagList(AppendTag(scnTags, "status_code.status", key.StatusCode));
+                return new TagList(AppendTag(scnTags, "status_code_status", key.StatusCode));
             },
             (Sink: this, OperationType: operationType));
 
