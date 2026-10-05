@@ -15,8 +15,6 @@ public class OpenTelemetrySinkTests(OtelCollectorFixture fixture) : IClassFixtur
     private const string GaugeName = "e2e-custom-gauge";
     private const double GaugeValue = 42.5;
 
-    private readonly PrometheusClient _metrics = new(fixture.PrometheusEndpoint);
-
     [Theory]
     [InlineData(OtlpExportProtocol.Grpc)]
     [InlineData(OtlpExportProtocol.HttpProtobuf)]
@@ -34,22 +32,22 @@ public class OpenTelemetrySinkTests(OtelCollectorFixture fixture) : IClassFixtur
         var scenarioLabels = GenerateLabels(testName, OperationType.Complete, new() { ["step"] = "global information" });
         var stepLabels = GenerateLabels(testName, OperationType.Complete, new() { ["step"] = StepName });
 
-        var scnOkCount = await _metrics.WaitForSample("ok.request.count", scenarioLabels);
+        var scnOkCount = await fixture.PrometheusClient.WaitForSample("ok.request.count", scenarioLabels);
         scnOkCount.Value.ShouldBe(scnStats.Ok.Request.Count);
 
-        var scnFailCount = await _metrics.WaitForSample("fail.request.count", scenarioLabels);
+        var scnFailCount = await fixture.PrometheusClient.WaitForSample("fail.request.count", scenarioLabels);
         scnFailCount.Value.ShouldBe(scnStats.Fail.Request.Count);
 
-        var stepOkCount = await _metrics.WaitForSample("ok.request.count", stepLabels);
+        var stepOkCount = await fixture.PrometheusClient.WaitForSample("ok.request.count", stepLabels);
         stepOkCount.Value.ShouldBe(stepStats.Ok.Request.Count);
 
-        var stepLatencyMax = await _metrics.WaitForSample("ok.latency.max", stepLabels);
+        var stepLatencyMax = await fixture.PrometheusClient.WaitForSample("ok.latency.max", stepLabels);
         stepLatencyMax.Value.ShouldBe(stepStats.Ok.Latency.MaxMs, tolerance: 0.001);
 
         var statusCodeLabels = GenerateLabels(testName, OperationType.Complete,
             new() { ["step"] = "global information", ["status_code_status"] = "200" });
         
-        var statusCodeCount = await _metrics.WaitForSample("status_code.count", statusCodeLabels);
+        var statusCodeCount = await fixture.PrometheusClient.WaitForSample("status_code.count", statusCodeLabels);
         statusCodeCount.Value.ShouldBe(scnStats.Ok.StatusCodes.First(x => x.StatusCode == "200").Count);
     }
 
@@ -65,10 +63,10 @@ public class OpenTelemetrySinkTests(OtelCollectorFixture fixture) : IClassFixtur
 
         var labels = GenerateLabels(testName, OperationType.Bombing, new() { ["step"] = StepName });
 
-        var okCount = await _metrics.WaitForSample("ok.request.count", labels);
+        var okCount = await fixture.PrometheusClient.WaitForSample("ok.request.count", labels);
         okCount.Value.ShouldBeGreaterThan(0);
     }
-
+    
     [Theory]
     [InlineData(OtlpExportProtocol.Grpc)]
     [InlineData(OtlpExportProtocol.HttpProtobuf)]
@@ -85,10 +83,10 @@ public class OpenTelemetrySinkTests(OtelCollectorFixture fixture) : IClassFixtur
 
         var labels = GenerateLabels(testName, OperationType.Complete);
 
-        var counter = await _metrics.WaitForSample(CounterName, labels);
+        var counter = await fixture.PrometheusClient.WaitForSample(CounterName, labels);
         counter.Value.ShouldBe(counterStats.Value);
 
-        var gauge = await _metrics.WaitForSample(GaugeName, labels);
+        var gauge = await fixture.PrometheusClient.WaitForSample(GaugeName, labels);
         gaugeStats.Value.ShouldBe(GaugeValue);
         gauge.Value.ShouldBe(gaugeStats.Value);
     }

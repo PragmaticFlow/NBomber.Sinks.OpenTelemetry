@@ -7,9 +7,10 @@ public class OtelCollectorFixture : IAsyncLifetime
 
     public Uri OtlpGrpcEndpoint { get; } = new("http://localhost:4317");
     public Uri OtlpHttpEndpoint { get; } = new("http://localhost:4318/v1/metrics");
-    public Uri PrometheusEndpoint { get; } = new("http://localhost:9090");
     private Uri CollectorHealthCheckEndpoint { get; } = new("http://localhost:13133");
 
+    public PrometheusClient PrometheusClient { get; } = new(new Uri("http://localhost:9090"));
+    
     public async ValueTask InitializeAsync()
     {
         await WaitUntilReady("OTEL Collector", CollectorHealthCheckEndpoint);
@@ -35,7 +36,7 @@ public class OtelCollectorFixture : IAsyncLifetime
             if (DateTime.UtcNow > deadline)
                 throw new InvalidOperationException(
                     $"{service} is not available at {url}. Start the test infrastructure first: " +
-                    "'docker compose -f tests/NBomber.Sinks.OpenTelemetry.Tests/docker-compose.yaml up -d --wait'.");
+                    "'docker compose -f tests/NBomber.Sinks.OpenTelemetry.Tests/Docker/docker-compose.yaml up -d --wait'.");
 
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
