@@ -216,6 +216,7 @@ public class OpenTelemetrySink : IReportingSink
             RecordGauge("ok.datatransfer.mean", stats.Ok.DataTransfer.MeanBytes, tags);
             RecordGauge("ok.datatransfer.max", stats.Ok.DataTransfer.MaxBytes, tags);
             RecordGauge("ok.datatransfer.all", stats.Ok.DataTransfer.AllBytes, tags);
+            RecordGauge("ok.datatransfer.bytes_per_second", stats.Ok.DataTransfer.BytesPerSecond, tags);
             RecordGauge("ok.datatransfer.percent50", stats.Ok.DataTransfer.Percent50, tags);
             RecordGauge("ok.datatransfer.percent75", stats.Ok.DataTransfer.Percent75, tags);
             RecordGauge("ok.datatransfer.percent95", stats.Ok.DataTransfer.Percent95, tags);
@@ -237,6 +238,7 @@ public class OpenTelemetrySink : IReportingSink
             RecordGauge("fail.datatransfer.mean", stats.Fail.DataTransfer.MeanBytes, tags);
             RecordGauge("fail.datatransfer.max", stats.Fail.DataTransfer.MaxBytes, tags);
             RecordGauge("fail.datatransfer.all", stats.Fail.DataTransfer.AllBytes, tags);
+            RecordGauge("fail.datatransfer.bytes_per_second", stats.Fail.DataTransfer.BytesPerSecond, tags);
             RecordGauge("fail.datatransfer.percent50", stats.Fail.DataTransfer.Percent50, tags);
             RecordGauge("fail.datatransfer.percent75", stats.Fail.DataTransfer.Percent75, tags);
             RecordGauge("fail.datatransfer.percent95", stats.Fail.DataTransfer.Percent95, tags);
