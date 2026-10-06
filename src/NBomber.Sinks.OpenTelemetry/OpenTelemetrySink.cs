@@ -195,54 +195,54 @@ public class OpenTelemetrySink : IReportingSink
     {
         foreach (var stats in scnStats.StepStats)
         {
-            var tags = GetStepTags(operationType, scnStats.ScenarioName, stats.StepName);
+            var tags = GetStepTags(operationType, scnStats, stats.StepName);
 
             RecordGauge("all.request.count", stats.Ok.Request.Count + stats.Fail.Request.Count, tags);
-            RecordGauge("all.datatransfer.all", stats.Ok.DataTransfer.AllBytes + stats.Fail.DataTransfer.AllBytes, tags);
+            RecordGauge("all.datatransfer.all", stats.Ok.DataTransfer.AllBytes + stats.Fail.DataTransfer.AllBytes, tags, "B");
 
             RecordGauge("ok.request.count", stats.Ok.Request.Count, tags);
             RecordGauge("ok.request.rps", stats.Ok.Request.RPS, tags);
 
-            RecordGauge("ok.latency.min", stats.Ok.Latency.MinMs, tags);
-            RecordGauge("ok.latency.mean", stats.Ok.Latency.MeanMs, tags);
-            RecordGauge("ok.latency.max", stats.Ok.Latency.MaxMs, tags);
-            RecordGauge("ok.latency.stddev", stats.Ok.Latency.StdDev, tags);
-            RecordGauge("ok.latency.percent50", stats.Ok.Latency.Percent50, tags);
-            RecordGauge("ok.latency.percent75", stats.Ok.Latency.Percent75, tags);
-            RecordGauge("ok.latency.percent95", stats.Ok.Latency.Percent95, tags);
-            RecordGauge("ok.latency.percent99", stats.Ok.Latency.Percent99, tags);
+            RecordGauge("ok.latency.min", stats.Ok.Latency.MinMs, tags, "ms");
+            RecordGauge("ok.latency.mean", stats.Ok.Latency.MeanMs, tags, "ms");
+            RecordGauge("ok.latency.max", stats.Ok.Latency.MaxMs, tags, "ms");
+            RecordGauge("ok.latency.stddev", stats.Ok.Latency.StdDev, tags, "ms");
+            RecordGauge("ok.latency.percent50", stats.Ok.Latency.Percent50, tags, "ms");
+            RecordGauge("ok.latency.percent75", stats.Ok.Latency.Percent75, tags, "ms");
+            RecordGauge("ok.latency.percent95", stats.Ok.Latency.Percent95, tags, "ms");
+            RecordGauge("ok.latency.percent99", stats.Ok.Latency.Percent99, tags, "ms");
 
-            RecordGauge("ok.datatransfer.min", stats.Ok.DataTransfer.MinBytes, tags);
-            RecordGauge("ok.datatransfer.mean", stats.Ok.DataTransfer.MeanBytes, tags);
-            RecordGauge("ok.datatransfer.max", stats.Ok.DataTransfer.MaxBytes, tags);
-            RecordGauge("ok.datatransfer.all", stats.Ok.DataTransfer.AllBytes, tags);
-            RecordGauge("ok.datatransfer.bytes_per_second", stats.Ok.DataTransfer.BytesPerSecond, tags);
-            RecordGauge("ok.datatransfer.percent50", stats.Ok.DataTransfer.Percent50, tags);
-            RecordGauge("ok.datatransfer.percent75", stats.Ok.DataTransfer.Percent75, tags);
-            RecordGauge("ok.datatransfer.percent95", stats.Ok.DataTransfer.Percent95, tags);
-            RecordGauge("ok.datatransfer.percent99", stats.Ok.DataTransfer.Percent99, tags);
+            RecordGauge("ok.datatransfer.min", stats.Ok.DataTransfer.MinBytes, tags, "B");
+            RecordGauge("ok.datatransfer.mean", stats.Ok.DataTransfer.MeanBytes, tags, "B");
+            RecordGauge("ok.datatransfer.max", stats.Ok.DataTransfer.MaxBytes, tags, "B");
+            RecordGauge("ok.datatransfer.all", stats.Ok.DataTransfer.AllBytes, tags, "B");
+            RecordGauge("ok.datatransfer.bytes_per_second", stats.Ok.DataTransfer.BytesPerSecond, tags, "B/s");
+            RecordGauge("ok.datatransfer.percent50", stats.Ok.DataTransfer.Percent50, tags, "B");
+            RecordGauge("ok.datatransfer.percent75", stats.Ok.DataTransfer.Percent75, tags, "B");
+            RecordGauge("ok.datatransfer.percent95", stats.Ok.DataTransfer.Percent95, tags, "B");
+            RecordGauge("ok.datatransfer.percent99", stats.Ok.DataTransfer.Percent99, tags, "B");
 
             RecordGauge("fail.request.count", stats.Fail.Request.Count, tags);
             RecordGauge("fail.request.rps", stats.Fail.Request.RPS, tags);
 
-            RecordGauge("fail.latency.min", stats.Fail.Latency.MinMs, tags);
-            RecordGauge("fail.latency.mean", stats.Fail.Latency.MeanMs, tags);
-            RecordGauge("fail.latency.max", stats.Fail.Latency.MaxMs, tags);
-            RecordGauge("fail.latency.stddev", stats.Fail.Latency.StdDev, tags);
-            RecordGauge("fail.latency.percent50", stats.Fail.Latency.Percent50, tags);
-            RecordGauge("fail.latency.percent75", stats.Fail.Latency.Percent75, tags);
-            RecordGauge("fail.latency.percent95", stats.Fail.Latency.Percent95, tags);
-            RecordGauge("fail.latency.percent99", stats.Fail.Latency.Percent99, tags);
+            RecordGauge("fail.latency.min", stats.Fail.Latency.MinMs, tags, "ms");
+            RecordGauge("fail.latency.mean", stats.Fail.Latency.MeanMs, tags, "ms");
+            RecordGauge("fail.latency.max", stats.Fail.Latency.MaxMs, tags, "ms");
+            RecordGauge("fail.latency.stddev", stats.Fail.Latency.StdDev, tags, "ms");
+            RecordGauge("fail.latency.percent50", stats.Fail.Latency.Percent50, tags, "ms");
+            RecordGauge("fail.latency.percent75", stats.Fail.Latency.Percent75, tags, "ms");
+            RecordGauge("fail.latency.percent95", stats.Fail.Latency.Percent95, tags, "ms");
+            RecordGauge("fail.latency.percent99", stats.Fail.Latency.Percent99, tags, "ms");
 
-            RecordGauge("fail.datatransfer.min", stats.Fail.DataTransfer.MinBytes, tags);
-            RecordGauge("fail.datatransfer.mean", stats.Fail.DataTransfer.MeanBytes, tags);
-            RecordGauge("fail.datatransfer.max", stats.Fail.DataTransfer.MaxBytes, tags);
-            RecordGauge("fail.datatransfer.all", stats.Fail.DataTransfer.AllBytes, tags);
-            RecordGauge("fail.datatransfer.bytes_per_second", stats.Fail.DataTransfer.BytesPerSecond, tags);
-            RecordGauge("fail.datatransfer.percent50", stats.Fail.DataTransfer.Percent50, tags);
-            RecordGauge("fail.datatransfer.percent75", stats.Fail.DataTransfer.Percent75, tags);
-            RecordGauge("fail.datatransfer.percent95", stats.Fail.DataTransfer.Percent95, tags);
-            RecordGauge("fail.datatransfer.percent99", stats.Fail.DataTransfer.Percent99, tags);
+            RecordGauge("fail.datatransfer.min", stats.Fail.DataTransfer.MinBytes, tags, "B");
+            RecordGauge("fail.datatransfer.mean", stats.Fail.DataTransfer.MeanBytes, tags, "B");
+            RecordGauge("fail.datatransfer.max", stats.Fail.DataTransfer.MaxBytes, tags, "B");
+            RecordGauge("fail.datatransfer.all", stats.Fail.DataTransfer.AllBytes, tags, "B");
+            RecordGauge("fail.datatransfer.bytes_per_second", stats.Fail.DataTransfer.BytesPerSecond, tags, "B/s");
+            RecordGauge("fail.datatransfer.percent50", stats.Fail.DataTransfer.Percent50, tags, "B");
+            RecordGauge("fail.datatransfer.percent75", stats.Fail.DataTransfer.Percent75, tags, "B");
+            RecordGauge("fail.datatransfer.percent95", stats.Fail.DataTransfer.Percent95, tags, "B");
+            RecordGauge("fail.datatransfer.percent99", stats.Fail.DataTransfer.Percent99, tags, "B");
 
             RecordGauge("simulation.value", scnStats.LoadSimulationStats.Value, tags);
 
@@ -271,7 +271,7 @@ public class OpenTelemetrySink : IReportingSink
     {
         foreach (var codeStats in step.Ok.StatusCodes.Concat(step.Fail.StatusCodes))
         {
-            var tags = GetStatusCodeTags(operationType, scnStats.ScenarioName, step.StepName, codeStats.StatusCode);
+            var tags = GetStatusCodeTags(operationType, scnStats, step.StepName, codeStats.StatusCode);
             RecordGauge("status_code.count", codeStats.Count, tags);
         }
     }
@@ -311,28 +311,28 @@ public class OpenTelemetrySink : IReportingSink
     private Dictionary<string, object?> GetGlobalTags(OperationType operationType) =>
         _globalTags ??= BuildGlobalTags(operationType);
 
-    private KeyValuePair<string, object?>[] GetScenarioTags(OperationType operationType, string scenarioName) =>
-        _scenarioTags.GetOrAdd(scenarioName,
-            static (scnName, state) => state.Sink.BuildScenarioTags(state.OperationType, scnName),
-            (Sink: this, OperationType: operationType));
+    private KeyValuePair<string, object?>[] GetScenarioTags(OperationType operationType, ScenarioStats scnStats) =>
+        _scenarioTags.GetOrAdd(scnStats.ScenarioName,
+            static (_, state) => state.Sink.BuildScenarioTags(state.OperationType, state.ScnStats),
+            (Sink: this, OperationType: operationType, ScnStats: scnStats));
     
-    private TagList GetStepTags(OperationType operationType, string scenarioName, string stepName) =>
-        _stepTags.GetOrAdd((scenarioName, stepName),
+    private TagList GetStepTags(OperationType operationType, ScenarioStats scnStats, string stepName) =>
+        _stepTags.GetOrAdd((scnStats.ScenarioName, stepName),
             static (key, state) =>
             {
-                var scnTags = state.Sink.GetScenarioTags(state.OperationType, key.Scenario);
+                var scnTags = state.Sink.GetScenarioTags(state.OperationType, state.ScnStats);
                 return new TagList(AppendTag(scnTags, "step", key.Step));
             },
-            (Sink: this, OperationType: operationType));
+            (Sink: this, OperationType: operationType, ScnStats: scnStats));
 
-    private TagList GetStatusCodeTags(OperationType operationType, string scenarioName, string stepName, string statusCode) =>
-        _statusCodeTags.GetOrAdd((scenarioName, stepName, statusCode),
+    private TagList GetStatusCodeTags(OperationType operationType, ScenarioStats scnStats, string stepName, string statusCode) =>
+        _statusCodeTags.GetOrAdd((scnStats.ScenarioName, stepName, statusCode),
             static (key, state) =>
             {
-                var stepTags = state.Sink.GetStepTags(state.OperationType, key.Scenario, key.Step);
+                var stepTags = state.Sink.GetStepTags(state.OperationType, state.ScnStats, key.Step);
                 return new TagList(AppendTag(stepTags.ToArray(), "status_code_status", key.StatusCode));
             },
-            (Sink: this, OperationType: operationType));
+            (Sink: this, OperationType: operationType, ScnStats: scnStats));
 
     private TagList GetMetricTags(OperationType operationType, string scenarioName) =>
         _metricTags.GetOrAdd(scenarioName,
@@ -362,14 +362,16 @@ public class OpenTelemetrySink : IReportingSink
         return tags;
     }
 
-    private KeyValuePair<string, object?>[] BuildScenarioTags(OperationType operationType, string scenarioName)
+    private KeyValuePair<string, object?>[] BuildScenarioTags(OperationType operationType, ScenarioStats scnStats)
     {
         var globalTags = GetGlobalTags(operationType);
 
         var tags = new Dictionary<string, object?>(globalTags)
         {
-            ["scenario"] = scenarioName
+            ["scenario"] = scnStats.ScenarioName
         };
+
+        MergeTags(tags, scnStats.Tags);
 
         return tags.ToArray();
     }
